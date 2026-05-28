@@ -7,6 +7,11 @@ from dotenv import load_dotenv
 
 from app.routers import analysis, health
 
+from app.utils.file_validator import (
+    validate_file_type,
+    validate_file_size
+)
+
 load_dotenv()
 
 
