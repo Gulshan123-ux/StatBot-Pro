@@ -9,6 +9,9 @@ from app.services.file_handler import parse_upload
 from app.services.agent import CSVAnalystAgent
 from app.models.schemas import AnalysisResponse, DatasetInfo
 
+SUPPORTED_EXTENSIONS = {".csv", ".xlsx", ".xls", ".tsv"}
+MAX_QUESTION_LENGTH = 500
+
 router = APIRouter()
 _agent = CSVAnalystAgent()
 
@@ -26,6 +29,12 @@ async def upload_and_ask(
     """
     if not question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
+
+    if len(question) > 500:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Question too long ({len(question)} chars). Max 500 characters."
+    )
 
     df, _ = await parse_upload(file)
     response = await _agent.analyze(df, question.strip(), session_id)
