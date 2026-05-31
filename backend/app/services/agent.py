@@ -19,6 +19,7 @@ from langgraph.prebuilt import create_react_agent
 
 from app.utils.sandbox import SandboxedREPL
 from app.models.schemas import AnalysisResponse, AnalysisStatus, ChartInfo
+from app.services.session_store import add_to_history, get_history  
 
 
 SYSTEM_PROMPT = """You are StatBot Pro, an expert autonomous data analyst.
@@ -135,10 +136,17 @@ class CSVAnalystAgent:
         )
 
         try:
-            messages = [
-                SystemMessage(content=system_msg),
-                HumanMessage(content=question),
-            ]
+            # build messages with conversation history
+            messages = [SystemMessage(content=system_msg)]
+
+            # inject previous exchanges so agent remembers context
+            history = get_history(session_id)
+
+            for exchange in history:
+                messages.append(HumanMessage(content=exchange["question"]))
+                messages.append(SystemMessage(content=f"Previous answer: {exchange['answer']}"))
+
+            messages.append(HumanMessage(content=question))
 
             result = await agent.ainvoke(
                 {"messages": messages},
@@ -158,6 +166,10 @@ class CSVAnalystAgent:
             charts = [ChartInfo(**c) for c in results_store["charts"]]
             elapsed_ms = int((time.time() - start_time) * 1000)
             iterations = len(results_store["code_snippets"])
+
+            # save to session history for follow-up questions
+            # save to session history for follow-up questions
+            add_to_history(session_id, question, answer)
 
             return AnalysisResponse(
                 session_id=session_id,
