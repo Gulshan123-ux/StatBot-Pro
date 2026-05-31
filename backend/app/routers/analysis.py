@@ -8,6 +8,7 @@ from typing import Optional
 from app.services.file_handler import parse_upload
 from app.services.agent import CSVAnalystAgent
 from app.models.schemas import AnalysisResponse, DatasetInfo
+from app.services.session_store import get_history, clear_session
 
 SUPPORTED_EXTENSIONS = {".csv", ".xlsx", ".xls", ".tsv"}
 MAX_QUESTION_LENGTH = 500
@@ -49,3 +50,24 @@ async def preview_dataset(file: UploadFile = File(...)):
     """
     _, dataset_info = await parse_upload(file)
     return dataset_info
+
+
+@router.get("/session/{session_id}/history")
+async def get_session_history(session_id: str):
+    """
+    Get conversation history for a session.
+    Useful for showing previous questions in the frontend.
+    """
+    history = get_history(session_id)
+    return {
+        "session_id": session_id,
+        "count": len(history),
+        "history": history,
+    }
+
+
+@router.delete("/session/{session_id}")
+async def delete_session(session_id: str):
+    """Clear conversation history for a session."""
+    clear_session(session_id)
+    return {"session_id": session_id, "cleared": True}
