@@ -88,4 +88,20 @@ async def upload_and_ask(
     question: str = Form(...),
     session_id: Optional[str] = Form(None),
 ):
-    
+    """
+    Upload a CSV file and ask question.
+    The agent will write and execute Python and pandas, self-correct on errors,
+    and return the answer plus any generated charts.
+    """s
+    if not question.strip():
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+
+    if len(question) > MAX_QUESTION_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Question too long ({len(question)} chars). Max {MAX_QUESTION_LENGTH} characters."
+        )
+
+    df, _ = await parse_upload(file)
+    response = await _agent.analyze(df, question.strip(), session_id)
+    return response
