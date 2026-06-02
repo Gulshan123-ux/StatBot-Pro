@@ -173,13 +173,28 @@ The agent executes code in a restricted Python environment:
 
 ---
 
-## 📅 Week 2 Plan (Next Steps)
+## 📅 Week 2 — ✅ COMPLETED
 
-- [ ] Add Redis job queue for async long-running analyses
-- [ ] WebSocket progress streaming
-- [ ] Session persistence (follow-up questions remember context)
-- [ ] Support for multi-file joins
-- [ ] Export results as PDF report
+| Feature | Status | Implementation |
+|---|---|---|
+| Async job queue | ✅ Done | `app/core/job_store.py` — asyncio-based queue (Redis-ready interface) |
+| WebSocket progress streaming | ✅ Done | `app/core/connection_manager.py` + `/ws/{job_id}` endpoint |
+| Session persistence | ✅ Done | `app/core/session_store.py` — in-memory store with TTL eviction |
+| Multi-file joins | ✅ Done | `GET /api/analysis/upload` accepts multiple files + `join_on` key |
+| PDF report export | ✅ Done | `app/services/pdf_generator.py` using ReportLab |
+
+### New API Endpoints (v2)
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/analysis/upload` | Upload file to session (multi-file supported) |
+| `POST` | `/api/analysis/ask` | Submit async job → returns `job_id` |
+| `WS`   | `/ws/{job_id}` | Stream progress: `progress`, `done`, `error` events |
+| `POST` | `/api/analysis/ask-sync` | Sync analysis (no WebSocket needed) |
+| `GET`  | `/api/sessions/` | List all active sessions |
+| `GET`  | `/api/sessions/{id}` | Get session details + chat history |
+| `DELETE` | `/api/sessions/{id}` | Delete session |
+| `POST` | `/api/sessions/{id}/export-pdf` | Export full session as PDF |
+| `GET`  | `/api/jobs/{job_id}` | Poll job status (WebSocket fallback) |
 
 ---
 
