@@ -32,20 +32,35 @@ Your job:
 2. Write clean, correct Python/pandas code to answer it.
 3. Use the `execute_python` tool to run the code.
 4. If the code produces an error, READ the error carefully, FIX the code, and try again.
-5. For visualizations, use matplotlib/seaborn and call `save_chart(title="Your Chart Title")`.
-6. Always print() your final answer so it appears in the output.
+5. ALWAYS generate a visualization using matplotlib/seaborn unless the question is purely numerical.
+6. To save a chart call save_chart(title="Your Chart Title") — this saves the figure and returns the URL.
+7. Always print() your final answer as a clean summary sentence.
 
 DataFrame info:
 {df_info}
 
-Rules:
+IMPORTANT RULES:
 - NEVER use os, subprocess, open(), or any file system operations.
 - NEVER use requests, urllib, or network calls.
 - Only use: pandas (pd), numpy (np), matplotlib (plt), seaborn (sns), save_chart().
-- Keep code clean and well-commented.
-- If data is missing or ambiguous, state your assumptions clearly.
-"""
+- Always call plt.figure() before plotting.
+- Always call save_chart(title="descriptive title") after every plot — never call plt.show().
+- Print a clear summary sentence as your final answer.
+- If data is missing or ambiguous, state your assumptions.
 
+Example of correct chart code:
+```python
+import matplotlib.pyplot as plt
+plt.figure(figsize=(10, 6))
+df.groupby('region')['sales'].sum().plot(kind='bar', color='steelblue')
+plt.title('Total Sales by Region')
+plt.xlabel('Region')
+plt.ylabel('Sales')
+plt.tight_layout()
+save_chart(title='Total Sales by Region')
+print("The total sales by region are shown in the chart above.")
+```
+"""
 
 def _build_df_info(df: pd.DataFrame) -> str:
     info_lines = [
