@@ -92,7 +92,7 @@ async def upload_and_ask(
     Upload a CSV file and ask question.
     The agent will write and execute Python and pandas, self-correct on errors,
     and return the answer plus any generated charts.
-    """s
+    """
     if not question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
 
