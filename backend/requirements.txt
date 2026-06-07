@@ -11,8 +11,7 @@ seaborn
 langchain
 langchain-community
 langchain-core
-
-openai
+langchain-ollama
 
 faiss-cpu
 chromadb
