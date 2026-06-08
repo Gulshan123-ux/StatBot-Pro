@@ -1,9 +1,10 @@
 """
 StatBot Pro — Autonomous CSV Analyst Agent Service.
-Uses LangChain + GPT-4o with a sandboxed Python REPL tool.
+Uses LangChain + Groq/OpenAI with a sandboxed Python REPL tool.
 Supports self-correction: retries on code errors up to MAX_ITERATIONS.
 
 Note: updated to use langgraph ReAct agent (langchain >= 1.0)
+Note: switched to Groq as default LLM provider (free tier)
 """
 
 import os
@@ -13,13 +14,14 @@ import pandas as pd
 from typing import Optional
 
 from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain_core.tools import Tool
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
 from app.utils.sandbox import SandboxedREPL
 from app.models.schemas import AnalysisResponse, AnalysisStatus, ChartInfo
-from app.services.session_store import add_to_history, get_history  
+from app.services.session_store import add_to_history, get_history
 
 
 SYSTEM_PROMPT = """You are StatBot Pro, an expert autonomous data analyst.
@@ -30,18 +32,33 @@ Your job:
 2. Write clean, correct Python/pandas code to answer it.
 3. Use the `execute_python` tool to run the code.
 4. If the code produces an error, READ the error carefully, FIX the code, and try again.
-5. For visualizations, use matplotlib/seaborn and call `save_chart(title="Your Chart Title")`.
-6. Always print() your final answer so it appears in the output.
+5. ALWAYS generate a visualization using matplotlib unless the question is purely numerical.
+6. To save a chart call save_chart(title="Your Chart Title") after every plot.
+7. Always print() your final answer as a clean summary sentence.
 
 DataFrame info:
 {df_info}
 
-Rules:
+IMPORTANT RULES:
 - NEVER use os, subprocess, open(), or any file system operations.
 - NEVER use requests, urllib, or network calls.
 - Only use: pandas (pd), numpy (np), matplotlib (plt), seaborn (sns), save_chart().
-- Keep code clean and well-commented.
-- If data is missing or ambiguous, state your assumptions clearly.
+- Always call plt.figure() before plotting.
+- Always call save_chart(title="descriptive title") after every plot — never call plt.show().
+- Print a clear summary sentence as your final answer.
+- If data is missing or ambiguous, state your assumptions.
+
+Example of correct chart code:
+```python
+plt.figure(figsize=(10, 6))
+df.groupby('region')['sales'].sum().plot(kind='bar', color='steelblue')
+plt.title('Total Sales by Region')
+plt.xlabel('Region')
+plt.ylabel('Sales')
+plt.tight_layout()
+save_chart(title='Total Sales by Region')
+print("South leads with highest sales at 267000, followed by North at 252000.")
+```
 """
 
 
@@ -62,7 +79,10 @@ def _build_df_info(df: pd.DataFrame) -> str:
 class CSVAnalystAgent:
     def __init__(self):
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
+        self.llm_provider = os.getenv("LLM_PROVIDER", "groq")
         self.model = os.getenv("OPENAI_MODEL", "gpt-4o")
+        self.groq_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
         self.max_iterations = int(os.getenv("MAX_ITERATIONS", "10"))
         self.charts_dir = os.getenv("CHARTS_DIR", "static/charts")
         self.charts_base_url = os.getenv(
@@ -109,12 +129,13 @@ class CSVAnalystAgent:
         session_id = session_id or uuid.uuid4().hex
         start_time = time.time()
 
-        if not self.openai_api_key:
+        # check at least one API key is configured
+        if not self.groq_api_key and not self.openai_api_key:
             return AnalysisResponse(
                 session_id=session_id,
                 status=AnalysisStatus.ERROR,
                 question=question,
-                error="OPENAI_API_KEY is not configured. Please set it in backend/.env",
+                error="No API key configured. Add GROQ_API_KEY or OPENAI_API_KEY to backend/.env",
             )
 
         repl = SandboxedREPL(self.charts_dir, self.charts_base_url)
@@ -123,11 +144,20 @@ class CSVAnalystAgent:
         df_info = _build_df_info(df)
         system_msg = SYSTEM_PROMPT.format(df_info=df_info)
 
-        llm = ChatOpenAI(
-            model=self.model,
-            temperature=0,
-            api_key=self.openai_api_key,
-        )
+        # use Groq by default - free and fast
+        # set LLM_PROVIDER=openai in .env to switch back to OpenAI
+        if self.llm_provider == "groq" and self.groq_api_key:
+            llm = ChatGroq(
+                model=self.groq_model,
+                temperature=0,
+                api_key=self.groq_api_key,
+            )
+        else:
+            llm = ChatOpenAI(
+                model=self.model,
+                temperature=0,
+                api_key=self.openai_api_key,
+            )
 
         # langgraph ReAct agent - works with langchain >= 1.0
         agent = create_react_agent(
@@ -141,7 +171,6 @@ class CSVAnalystAgent:
 
             # inject previous exchanges so agent remembers context
             history = get_history(session_id)
-
             for exchange in history:
                 messages.append(HumanMessage(content=exchange["question"]))
                 messages.append(SystemMessage(content=f"Previous answer: {exchange['answer']}"))
@@ -167,7 +196,6 @@ class CSVAnalystAgent:
             elapsed_ms = int((time.time() - start_time) * 1000)
             iterations = len(results_store["code_snippets"])
 
-            # save to session history for follow-up questions
             # save to session history for follow-up questions
             add_to_history(session_id, question, answer)
 
