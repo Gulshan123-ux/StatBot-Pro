@@ -124,14 +124,36 @@ class SandboxedREPL:
         error = None
         output = ""
 
-        try:
-            with contextlib.redirect_stdout(stdout_capture):
-                exec(compile(code, "<sandbox>", "exec"), safe_globals)  # noqa: S102
-            output = stdout_capture.getvalue()
-        except SandboxViolationError as e:
-            error = f"🚫 Sandbox violation: {e}"
-        except Exception:
-            error = traceback.format_exc()
+                # timeout using threading - works on both Windows and Linux
+        import threading
+        result_container = {}
+
+        def run():
+            try:
+                with contextlib.redirect_stdout(stdout_capture):
+                    exec(compile(code, "<sandbox>", "exec"), safe_globals)
+                result_container["output"] = stdout_capture.getvalue()[:10000]
+                result_container["error"] = None
+            except SandboxViolationError as e:
+                result_container["output"] = ""
+                result_container["error"] = f"Sandbox violation: {e}"
+            except Exception:
+                import matplotlib.pyplot as plt
+                plt.close("all")
+                result_container["output"] = ""
+                result_container["error"] = traceback.format_exc()
+
+        thread = threading.Thread(target=run)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout=30)  # 30 second timeout
+
+        if thread.is_alive():
+            error = "Execution timed out after 30 seconds. Your code may contain an infinite loop."
+            output = ""
+        else:
+            output = result_container.get("output", "")
+            error = result_container.get("error", None)
 
         charts = safe_globals.get("_generated_charts", [])
 
@@ -155,6 +177,7 @@ class SandboxedREPL:
             "socket.":      "Network access is not allowed",
             "requests.":    "Network access is not allowed",
             "urllib.":      "Network access is not allowed",
+            
         }
     
         for pattern, reason in dangerous_patterns.items():
