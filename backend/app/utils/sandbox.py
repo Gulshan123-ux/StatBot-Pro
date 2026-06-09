@@ -177,7 +177,8 @@ class SandboxedREPL:
             "socket.":      "Network access is not allowed",
             "requests.":    "Network access is not allowed",
             "urllib.":      "Network access is not allowed",
-            
+            "while true":    "Infinite loops are not allowed",
+            "while 1:":      "Infinite loops are not allowed",
         }
     
         for pattern, reason in dangerous_patterns.items():
