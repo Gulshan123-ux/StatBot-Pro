@@ -36,7 +36,9 @@ Your job:
 5. ALWAYS generate a visualization using matplotlib unless the question is purely numerical.
 6. To save a chart call save_chart(title="Your Chart Title") after every plot.
 7. Always print() your final answer as a clean summary sentence.
-
+8. NEVER print() raw DataFrames or Series directly (e.g. avoid print(sales_by_region)). 
+   Instead, convert results to plain English sentences using f-strings with formatted numbers.
+    
 DataFrame info:
 {df_info}
 
