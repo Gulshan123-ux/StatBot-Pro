@@ -5,7 +5,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const client = axios.create({
   baseURL: API_BASE,
-  timeout: 120_000, // 2 min — agent can take a while
+  timeout: 120_000,
 });
 
 export async function previewDataset(file: File): Promise<DatasetInfo> {
@@ -15,18 +15,35 @@ export async function previewDataset(file: File): Promise<DatasetInfo> {
   return data;
 }
 
+type ProgressCallback = (msg: string, step: number, total: number) => void;
+
 export async function analyzeCSV(
-  file: File,
+  files: File[],
   question: string,
-  sessionId?: string
+  sessionId?: string,
+  onProgress?: ProgressCallback
 ): Promise<AnalysisResponse> {
+  const file = files[0];
+  if (!file) {
+    throw new Error("No file provided");
+  }
+
+  // simulate progress steps while waiting for the agent
+  onProgress?.("Uploading file...", 1, 5);
+
   const form = new FormData();
   form.append("file", file);
   form.append("question", question);
   if (sessionId) form.append("session_id", sessionId);
+
+  onProgress?.("Agent is analyzing your data...", 2, 5);
+
   const { data } = await client.post<AnalysisResponse>(
     "/api/analysis/upload-and-ask",
     form
   );
+
+  onProgress?.("Generating response...", 5, 5);
+
   return data;
 }
