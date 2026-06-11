@@ -221,10 +221,26 @@ A static pattern scanner runs **before** every execution to catch injection atte
 
 ---
 
-## 📅 Week 3 Completion Tasks & Deliverables
 
-During Week 3, the following critical stabilization, security, and recovery enhancements were completed and saved:
+---
 
+## 📅 Weekly Completion Milestones
+
+### 🔹 Week 1 — Core Analytics & Pipeline Setup
+* **FastAPI Backend Setup:** Implemented full CORS-enabled FastAPI server.
+* **CSV/Excel Parser:** Added pandas + openpyxl-based file upload parsing, validation, and error detection.
+* **Basic Dataset Preview:** Constructed a dataset preview endpoint returning column list, auto-detected dtypes (numeric, string, date), and a preview of sample rows.
+* **Drag-and-Drop Uploader:** Integrated a drag-and-drop file upload zone in Next.js using React hooks.
+
+### 🔹 Week 2 — Conversational Agent & Rich UI/UX
+* **LangChain AI Agent:** Integrated an autonomous agent executor using LangChain and GPT-4o that iteratively generates, executes, and self-corrects pandas code.
+* **Interactive Chat UI:** Developed a responsive grid-background chat layout with conversation bubbles.
+* **Agent Thinking Indicator:** Implemented a skeleton screen loader with an active, real-time elapsed millisecond timer.
+* **Collapsible Code Viewer:** Added transparency allowing users to view the exact generated pandas script running behind the scenes.
+* **Features Sidebar:** Included a recent questions panel for re-triggering analysis queries instantly.
+* **Utilities & Export:** Built a one-click session JSON exporter, copy-to-clipboard button, and a 500-character input threshold indicator with warnings.
+
+### 🔹 Week 3 — Sandbox Hardening, Quota Recovery & Hydration Optimizations
 1. **🛡️ Python Sandboxed REPL Hardening:** 
    - Restructured the restricted execution environment (`app/utils/sandbox.py`) to block access to dangerous built-ins (`eval`, `exec`, `open`, `__import__`) and OS/network libraries (`os`, `sys`, `subprocess`, `requests`, `socket`).
    - Integrated static analysis that scans all LLM-generated Python code before execution to abort suspicious input patterns.
