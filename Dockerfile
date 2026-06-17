@@ -1,43 +1,23 @@
-# Use official Node.js base image
-FROM node:20-slim AS builder
+# Use official Python base image
+FROM python:3.11-slim
 
+# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Install system dependencies needed for compiling packages or matplotlib
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-RUN npm ci
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the frontend code
+# Copy the rest of the backend code
 COPY . .
 
-# Set environment variables for production build
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
+# Expose FastAPI default port
+EXPOSE 8000
 
-# Build the Next.js application
-RUN npm run build
-
-# Runner stage
-FROM node:20-slim AS runner
-
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-# Copy package files and runtime assets
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/package-lock.json ./
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules ./node_modules
-
-# Expose Next.js port
-EXPOSE 3000
-
-# Command to run production next.js server
-CMD ["npm", "run", "start"]
+# Command to run FastAPI server
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
