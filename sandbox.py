@@ -154,6 +154,13 @@ class SandboxedREPL:
             "socket.",
             "requests.",
             "urllib.",
+            "__class__",
+            "__subclasses__",
+            "__mro__",
+            "__globals__",
+            "getattr",
+            "eval(",
+            "exec(",
         ]
         for pattern in dangerous_patterns:
             if pattern in lower:

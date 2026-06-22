@@ -25,6 +25,9 @@ app = FastAPI(
     description="Autonomous CSV Data Analyst Agent — powered by LangChain + GPT-4",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 # CORS
@@ -54,5 +57,4 @@ async def root():
         "name": "StatBot Pro",
         "tagline": "Autonomous CSV Data Analyst Agent",
         "version": "1.0.0",
-        "docs": "/docs",
     }
