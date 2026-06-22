@@ -1,5 +1,6 @@
 import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi.responses import StreamingResponse
 from app.models.schemas import AnalysisResponse, PreviewResponse
 from app.services.file_handler import parse_upload, build_preview_response
 from app.services.agent import CSVAnalystAgent
@@ -36,3 +37,22 @@ async def upload_and_ask(
     agent = CSVAnalystAgent()
     response = await agent.analyze(df, question, session_id)
     return response
+
+
+@router.post(
+    "/upload-and-ask-stream",
+    summary="Analyze Dataset (Streaming)",
+    description="Upload single CSV, run autonomous agent and stream thoughts and final answer in real-time.",
+)
+async def upload_and_ask_stream(
+    file: UploadFile = File(...),
+    question: str = Form(..., min_length=1, max_length=1000, description="Analytical question in plain English"),
+    session_id: str = Form(default_factory=lambda: str(uuid.uuid4()), description="Session ID for conversation continuity"),
+):
+    df = await parse_upload(file)
+    agent = CSVAnalystAgent()
+    return StreamingResponse(
+        agent.analyze_stream(df, question, session_id),
+        media_type="text/event-stream"
+    )
+
